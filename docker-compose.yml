@@ -1,0 +1,51 @@
+version: '3.3'
+# command run:
+#   $ NS01=172.55.5.3 NS02=172.55.5.5 TARGETADDR=185.161.209.135 docker-compose up
+
+services:
+    ns01:
+        build: /root/dnsredirector/dnschef/.
+        image: dnschef
+        container_name: ns01
+        tty: true
+        stdin_open: true
+        entrypoint:
+            - /dnschef/dnschef.py
+            - --interface
+            - 0.0.0.0
+            - --fakeip
+            - ${TARGETADDR}
+            - -q
+        networks:
+            default:
+              ipv4_address: ${NS01}
+
+    ns02:
+        image: dnschef
+        container_name: ns02
+        volumes:
+            - ./dnsredirector/redns/config:/config
+        entrypoint:
+            - /dnschef/dnschef.py
+            - --file
+            - /config/dnschef.ini
+            - --interface
+            - ${NS02}
+            - --nameservers
+            - ${NS01}
+            - -q
+
+        depends_on:
+            - ns01
+        tty: true
+        stdin_open: true
+        networks:
+            default:
+              ipv4_address: ${NS02}
+
+
+
+networks:
+  default:
+    external:
+      name: local_network
